@@ -1,0 +1,4 @@
+# dsh bundle patch：把「复习台」挂进 profile 的层栈
+- insert:
+    - id: dsh-review-desk
+      name: 'dsh-review-desk'

@@ -1,0 +1,61 @@
+{
+  "name": "dsh-review-desk",
+  "version": "0.2.0",
+  "description": "DSH sidebar plugin: turn any topic into a web-grounded flashcard set and track what you got wrong.",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "icon": "assets/icon.svg",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./assets/icon.svg"
+  },
+  "files": [
+    "lib",
+    "locale",
+    "assets",
+    "cordis.patch.yml",
+    "README.md",
+    "README.en.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "cordis",
+    "flashcards",
+    "spaced-repetition",
+    "study"
+  ],
+  "engines": {
+    "dsh": ">=0.2.1-rc.3 <0.3.0",
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test tests/host.test.mjs tests/client.test.mjs",
+    "check": "node --check lib/index.js && node --check lib/client.js",
+    "lint": "npm run check && npm test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zakeluo/dsh-review-desk"
+  },
+  "homepage": "https://github.com/zakeluo/dsh-review-desk#readme",
+  "bugs": {
+    "url": "https://github.com/zakeluo/dsh-review-desk/issues"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": []
+    }
+  }
+}

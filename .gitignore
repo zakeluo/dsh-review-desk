@@ -1,0 +1,29 @@
+# 依赖（本插件运行时零依赖，目录仅用于本地开发）
+node_modules/
+
+# 本地审查 / 实测产物（不属于发布内容）
+.review/
+
+# 本地 AI 会话记忆（工具自动生成，不属于发布内容）
+.dsh-memory/
+
+# 其它本地 AI 工具产物（WorkBuddy 会话记忆等）
+.workbuddy/
+
+# 仓库根目录的随手图片/照片（docs/ 下的正式截图不受影响）
+/*.jpg
+/*.jpeg
+
+# 日志与系统垃圾
+*.log
+.DS_Store
+Thumbs.db
+
+# 测试覆盖率
+coverage/
+
+# 编辑器
+.vscode/
+
+# 本地数据副本（真实数据在 ~/.dsh/data/review-desk/）
+data/

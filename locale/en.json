@@ -1,0 +1,10 @@
+{
+  "meta": {
+    "title": "Review Desk",
+    "description": "Turn any topic into a web-grounded flashcard set, self-test with 3-5 questions, and keep a local wrong-answer book."
+  },
+  "panel": {
+    "title": "Review Desk",
+    "subtitle": "Topic to flashcards, self-test, wrong answers"
+  }
+}

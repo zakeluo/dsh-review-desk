@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Node ${{ matrix.node-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [20, 22]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+          # 运行时零依赖、仓库里没有 package-lock.json：
+          # 用 package.json 当缓存键，避免 setup-node 因缺少 lock 文件而报错。
+          cache-dependency-path: package.json
+
+      - name: Install (no runtime dependencies)
+        run: npm install --no-audit --no-fund
+
+      - name: Syntax check
+        run: npm run check
+
+      - name: Tests
+        run: npm test
