@@ -59,14 +59,17 @@ Get-Content locale\zh.json -Raw | ConvertFrom-Json | Out-Null
 
 ## 3. 初始化仓库并首次推送
 
+> **本仓库 v0.2.0 已完成**：`git init -b main`、21 个文件已首次提交（`chore: initial public release v0.2.0`）、本地 `v0.2.0` tag 已打好、`origin` 已指向 `https://github.com/zakeluo/dsh-review-desk.git`。到 GitHub 建好同名空仓库后，只需 `git push -u origin main` 与 `git push origin v0.2.0`。以下步骤保留给全新 checkout 或 fork 时参考。
+
 ```powershell
-git init
-git branch -M main
+git init -b main
 git add -A
-git status                     # 确认 .review/ 未被加入（已在 .gitignore 中）
+git status                     # 确认 .review/、*.jpg 未被加入（已在 .gitignore 中）
 git commit -m "chore: initial public release v0.2.0"
-git remote add origin https://github.com/<你的用户名>/dsh-review-desk.git
+git remote add origin https://github.com/zakeluo/dsh-review-desk.git
+git tag -a v0.2.0 -m "v0.2.0"
 git push -u origin main
+git push origin v0.2.0
 ```
 
 > 本机若没有 `git`，先装：`winget install --id Git.Git -e --source winget`（装完新开终端使 PATH 生效）。
