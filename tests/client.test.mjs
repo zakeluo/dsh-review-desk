@@ -544,3 +544,217 @@ test('源码契约：公式渲染接入题干/选项/解析/概念/定义/易混
   assert.match(SOURCE, /richText\('例：' \+ c\.example/, '易混淆示例需渲染公式')
 })
 
+test('ceToMathML：元素符号、系数与隐含下标', () => {
+  const { mod } = loadClient()
+  const ce = mod.__test.ceToMathML
+
+  const water = ce('2H2 + O2 -> 2H2O')
+  assert.match(water, /<mn>2<\/mn><msub><mi mathvariant="normal">H<\/mi><mn>2<\/mn><\/msub>/, '行首数字是系数，元素后的数字是下标')
+  assert.match(water, /<msub><mi mathvariant="normal">O<\/mi><mn>2<\/mn><\/msub>/)
+  assert.equal((water.match(/<msub>/g) || []).length, 3, 'H2/O2/H2O 共三个隐含下标')
+
+  const hydroxide = ce('Ca(OH)2')
+  assert.match(
+    hydroxide,
+    /<msub><mrow><mo>\(<\/mo><mi mathvariant="normal">O<\/mi><mi mathvariant="normal">H<\/mi><mo>\)<\/mo><\/mrow><mn>2<\/mn><\/msub>/,
+    '括号组后接下标'
+  )
+
+  const bracket = ce('[Fe(CN)_6]^{3-}')
+  assert.match(
+    bracket,
+    /<msup><mrow><mo>\[<\/mo><mi mathvariant="normal">Fe<\/mi><msub><mrow><mo>\(<\/mo><mi mathvariant="normal">C<\/mi><mi mathvariant="normal">N<\/mi><mo>\)<\/mo><\/mrow><mn>6<\/mn><\/msub><mo>\]<\/mo><\/mrow><mrow><mn>3<\/mn><mo>−<\/mo><\/mrow><\/msup>/,
+    '方括号组保留括号、组内 (CN)_6 加下标，组外再接电荷'
+  )
+
+  // 整个 \ce{…} 经 texToMathML 后包成 <math>，\ce 的 mrow 作为内容。
+  const wrapped = mod.__test.texToMathML('\\ce{H2O}', false)
+  assert.match(wrapped, /^<math [^>]*display="inline"><mrow>/)
+  assert.match(wrapped, /<msub><mi mathvariant="normal">H<\/mi><mn>2<\/mn><\/msub><mi mathvariant="normal">O<\/mi>/)
+})
+
+test('ceToMathML：电荷上标（^2-、^+、^{3+}、^- 与紧邻正负号）', () => {
+  const ce = loadClient().mod.__test.ceToMathML
+
+  assert.match(ce('H+'), /<msup><mi mathvariant="normal">H<\/mi><mo>\+<\/mo><\/msup>/, '紧邻加号是正电荷')
+  assert.match(ce('CH3COO-'), /<msup><mi mathvariant="normal">O<\/mi><mo>−<\/mo><\/msup>/, '紧邻减号是负电荷，且负号用 U+2212')
+  assert.match(ce('Cu^{2+}'), /<msup><mi mathvariant="normal">Cu<\/mi><mrow><mn>2<\/mn><mo>\+<\/mo><\/mrow><\/msup>/)
+  assert.match(ce('OH^{-}'), /<msup><mi mathvariant="normal">H<\/mi><mo>−<\/mo><\/msup>/)
+
+  // 隐式下标消费完数字后，仍要继续消费 ^，并把电荷挂到「元素+下标」整体上。
+  assert.match(
+    ce('SO4^2-'),
+    /<msup><msub><mi mathvariant="normal">O<\/mi><mn>4<\/mn><\/msub><mrow><mn>2<\/mn><mo>−<\/mo><\/mrow><\/msup>/,
+    '下标后仍可再挂电荷'
+  )
+  assert.match(
+    ce('Fe(CN)6^{3-}'),
+    /<msup><msub><mrow><mo>\(<\/mo><mi mathvariant="normal">C<\/mi><mi mathvariant="normal">N<\/mi><mo>\)<\/mo><\/mrow><mn>6<\/mn><\/msub><mrow><mn>3<\/mn><mo>−<\/mo><\/mrow><\/msup>/,
+    '括号组下标后仍可再挂电荷'
+  )
+})
+
+test('ceToMathML：状态后缀 (s)/(l)/(g)/(aq) 用普通括号且不接下标', () => {
+  const ce = loadClient().mod.__test.ceToMathML
+
+  const out = ce('Zn(s) + Cu^{2+}(aq) -> Zn^{2+}(aq) + Cu(s)')
+  assert.match(out, /<mo>\(<\/mo><mi mathvariant="normal">s<\/mi><mo>\)<\/mo>/, '固相状态用普通括号与正体字母')
+  assert.match(out, /<mo>\(<\/mo><mi mathvariant="normal">aq<\/mi><mo>\)<\/mo>/, '水合状态用普通括号与正体字母')
+
+  const salt = ce('NaCl(aq)')
+  assert.doesNotMatch(salt, /<msub>/, '状态括号不应被当成需要加下标的基团')
+  assert.match(salt, /<mo>\(<\/mo><mi mathvariant="normal">aq<\/mi><mo>\)<\/mo>/)
+})
+
+test('ceToMathML：箭头 ->、<-、<->、<=> 与 <=>>/<<=>', () => {
+  const ce = loadClient().mod.__test.ceToMathML
+
+  assert.match(ce('A -> B'), /<mo>→<\/mo>/)
+  assert.match(ce('A <- B'), /<mo>←<\/mo>/)
+  assert.match(ce('A <-> B'), /<mo>↔<\/mo>/)
+  assert.match(ce('A <=> B'), /<mo>⇌<\/mo>/, '可逆箭头')
+  assert.match(ce('A <=>> B'), /<mo>⇌<\/mo>/, '长箭头优先匹配')
+  assert.match(ce('A <<=> B'), /<mo>⇌<\/mo>/, '长箭头优先匹配')
+})
+
+test('ceToMathML：箭头条件 ->[上] 用 mover、->[上][下] 用 munderover', () => {
+  const ce = loadClient().mod.__test.ceToMathML
+
+  assert.match(
+    ce('2H2 + O2 ->[点燃] 2H2O'),
+    /<mover><mo stretchy="true">→<\/mo><mtext>点燃<\/mtext><\/mover>/,
+    '单条件放在箭头上方'
+  )
+  assert.match(
+    ce('A ->[上][下] B'),
+    /<munderover><mo stretchy="true">→<\/mo><mtext>下<\/mtext><mtext>上<\/mtext><\/munderover>/,
+    '第一对方括号在上、第二对在下'
+  )
+  assert.match(
+    ce('A ->[下] B'),
+    /<mover><mo stretchy="true">→<\/mo><mtext>下<\/mtext><\/mover>/,
+    'mhchem 语义下第一对方括号始终是上方条件'
+  )
+})
+
+test('ceToMathML：\\uparrow、\\downarrow 与空格命令', () => {
+  const ce = loadClient().mod.__test.ceToMathML
+
+  assert.match(ce('2H2O \\uparrow'), /<mo>↑<\/mo>/, '气体符号')
+  assert.match(ce('CO2 \\downarrow'), /<mo>↓<\/mo>/, '沉淀符号')
+  assert.match(ce('A\\ B'), /<mspace width="0.278em"\/>/, '\\ + 空格产生空白')
+  assert.match(ce('A\\;B'), /<mspace width="0.278em"\/>/, '\\; 产生空白')
+  assert.match(ce('\\text{点燃}'), /<mtext>点燃<\/mtext>/, '\\text{…} 降级为普通文字')
+})
+
+test('ceToMathML：未知 token 与畸形输入降级为 mtext，绝不抛错', () => {
+  const { mod } = loadClient()
+  const ce = mod.__test.ceToMathML
+
+  assert.match(ce('H2O + \\foo @#'), /<mtext>\\foo<\/mtext><mtext>@<\/mtext><mtext>#<\/mtext>/, '未知命令与字符原样降级')
+  assert.equal(ce(''), '<mrow></mrow>', '空内容产生空 mrow')
+  assert.equal(ce(null), '<mrow></mrow>', 'null 按空内容处理')
+
+  assert.doesNotThrow(() => ce('H2O + {O'), '未闭合括号不抛错')
+  assert.doesNotThrow(() => ce('^{'), '孤立脚本符不抛错')
+
+  const broken = mod.__test.texToMathML('\\ce{', false)
+  assert.match(broken, /^<math /, '残缺 \\ce{ 仍输出合法 math')
+})
+
+test('\\ce 嵌入 $…$ 行内公式并随 richText 渲染', () => {
+  const { mod } = loadClient()
+
+  const inline = mod.__test.texToMathML('\\ce{CH3COOH <=> CH3COO- + H+}', false)
+  assert.match(inline, /^<math [^>]*display="inline">/)
+  assert.match(inline, /<mo>⇌<\/mo>/)
+  assert.match(inline, /<msup><mi mathvariant="normal">H<\/mi><mo>\+<\/mo><\/msup>/)
+
+  const nodes = mod.__test.richText('反应：$\\ce{2H2 + O2 ->[点燃] 2H2O}$', 'k')
+  assert.ok(Array.isArray(nodes), '含公式时应返回子节点数组')
+  const math = nodes.find((n) => n && n.props && /rd-math-inline/.test(n.props.className))
+  assert.ok(math, '应生成行内公式节点')
+  assert.match(math.props.dangerouslySetInnerHTML.__html, /<mtext>点燃<\/mtext>/)
+
+  const block = mod.__test.richText('$$\\ce{2H2 + O2 -> 2H2O}$$', 'k')
+  assert.ok(Array.isArray(block))
+  assert.match(block[0].props.className, /rd-math-block/, '$$…$$ 里的 \\ce 渲染为居中独立公式')
+  assert.match(block[0].props.dangerouslySetInnerHTML.__html, /<mo>→<\/mo>/)
+})
+
+test('normalizeCard：透传并清洗 reactions 与 mechanism', () => {
+  const { mod } = loadClient()
+  const n = mod.__test.normalizeCard
+  const base = { topic: '化学', questions: [{ type: 'judge', stem: 's', answer: true }] }
+
+  const card = n({
+    ...base,
+    reactions: [
+      { label: '生成', equation: '\\ce{H2 + O2 -> H2O}' },
+      { equation: '   ' },
+      { label: '缺公式' },
+      null,
+      { label: '沉淀', equation: '$\\ce{CaCO3 v}$' }
+    ],
+    mechanism: '  1. 第一步\n2. 第二步  '
+  })
+  assert.equal(card.ok, true)
+  assert.deepEqual(host(card.card.reactions), [
+    { label: '生成', equation: '\\ce{H2 + O2 -> H2O}' },
+    { label: '沉淀', equation: '$\\ce{CaCO3 v}$' }
+  ], '缺失/空公式的条目被过滤，label 与 equation 保留')
+  assert.equal(card.card.mechanism, '1. 第一步\n2. 第二步', 'mechanism 透传并去掉首尾空白')
+
+  const empty = n(base)
+  assert.deepEqual(host(empty.card.reactions), [])
+  assert.equal(empty.card.mechanism, '')
+
+  const many = n({ ...base, reactions: Array.from({ length: 9 }, (_, i) => ({ equation: '\\ce{H' + i + '}' })) })
+  assert.equal(many.card.reactions.length, 8, 'reactions 最多保留 8 条')
+})
+
+test('源码契约：卡片渲染反应式与反应机理区块（缺失不渲染）', () => {
+  assert.match(SOURCE, /Array\.isArray\(card\.reactions\) && card\.reactions\.length/, 'reactions 缺失或空数组时不渲染')
+  assert.match(SOURCE, /'反应式'/, '需要反应式区块标题')
+  assert.match(SOURCE, /className: 'rd-eqn-formula'/, '公式容器类名')
+  assert.match(SOURCE, /equationNodes\(r\.equation/, '反应式公式走 equationNodes')
+  assert.match(SOURCE, /card\.mechanism[\s\S]{0,200}'反应机理'/, 'mechanism 为空时不渲染且标题正确')
+  assert.match(SOURCE, /mechanismNodes\(card\.mechanism/, '反应机理走 mechanismNodes')
+  assert.match(SOURCE, /\.rd-eqn-label\{/, '反应式说明文字样式')
+  assert.match(SOURCE, /\.rd-mech-step\{/, '机理步骤样式')
+})
+
+
+
+
+test('ceToMathML：单键写成键符号而不是电荷上标（CH2=CH-CH3）', () => {
+  const ce = loadClient().mod.__test.ceToMathML
+  const mml = ce('CH2=CH-CH3')
+  assert.doesNotMatch(mml, /\u207b/, '单键不能被渲染成负电荷上标')
+  assert.match(mml, /\u2013/, '单键应渲染为键符号 –')
+  assert.match(mml, /lspace="0\.06em"/, '键符号必须收窄间距，避免 CH2 = CH')
+})
+
+test('ceToMathML：箭头条件的 LaTeX 命令换成符号（->[\\Delta]）', () => {
+  const ce = loadClient().mod.__test.ceToMathML
+  const mml = ce('A ->[\\Delta] B')
+  assert.match(mml, /\u0394/, '\\Delta 应渲染成 Δ')
+  assert.equal(mml.includes('\\Delta'), false, '不能把 \\Delta 原样画在箭头上')
+})
+
+test('ceToMathML：电荷与单键共存时仍能区分（CH3-CH2-NH3+）', () => {
+  const ce = loadClient().mod.__test.ceToMathML
+  const mml = ce('CH3-CH2-NH3+')
+  assert.match(mml, /<msup>/, '末端 NH3+ 的 + 仍是电荷上标')
+  assert.match(mml, /lspace="0\.06em"/, '两个单键仍是键符号')
+})
+
+test('ceToMathML：上标里的命令换成符号（^{\\ddagger}、^{\\circ}）', () => {
+  const ce = loadClient().mod.__test.ceToMathML
+  const dagger = ce('C6H10^{\\ddagger}')
+  assert.match(dagger, /\u2021/, '\\ddagger 应渲染成 ‡')
+  assert.equal(dagger.includes('\\ddagger'), false, '不能把 \\ddagger 原样画出来')
+  assert.match(dagger, /<msup>/, '仍是上标')
+  const degree = ce('A ->[\\Delta] B^{\\circ}')
+  assert.match(degree, /\u00b0/, '\\circ 应渲染成 °')
+})

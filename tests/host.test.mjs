@@ -42,6 +42,7 @@ const CARD_PAYLOAD = {
 const logLines = { warn: [], error: [], info: [] }
 let llmMode = 'fast'
 let llmCalls = 0
+let payloadOverride = {}
 let handler = null
 
 const fakeCtx = {
@@ -69,7 +70,7 @@ const fakeCtx = {
       const userText = options?.messages?.[0]?.content?.[0]?.text || ''
       const matched = /知识点：(.+)/.exec(userText)
       const topic = matched ? matched[1].trim() : '未知知识点'
-      yield { type: 'text', text: JSON.stringify({ ...CARD_PAYLOAD, title: topic }) }
+      yield { type: 'text', text: JSON.stringify({ ...CARD_PAYLOAD, ...payloadOverride, title: topic }) }
     }
   },
   logger: {
@@ -622,4 +623,60 @@ test("生成提示词强制 LaTeX：覆盖行内/独立公式、希腊字母、�
     /题干、选项、解析/
   ]
   for (const re of rules) assert.match(source, re, "提示词缺少规则：" + re)
+})
+
+test("生成提示词强制 mhchem：化学反应式/机理必须用 \\ce 语法并配平", async () => {
+  const source = await readFile(new URL("../lib/index.js", import.meta.url), "utf8")
+  const rules = [
+    /mhchem/,
+    /\\\\ce\{/,
+    /<=>/,
+    /\\\\uparrow/,
+    /\\\\downarrow/,
+    /原子守恒与电荷守恒/,
+    /元素符号大小写/,
+    /\(aq\)/,
+    /机理类知识点必须写 mechanism/,
+    /至少 1 道题要考反应式\/机理/,
+    /"reactions"/,
+    /"mechanism"/
+  ]
+  for (const re of rules) assert.match(source, re, "提示词缺少化学规则：" + re)
+})
+
+test("卡片透传 reactions / mechanism：过滤空式、限制条数与长度", async () => {
+  llmMode = "fast"
+  payloadOverride = {
+    reactions: [
+      { label: "总反应", equation: "$$\\ce{2H2 + O2 ->[点燃] 2H2O}$$" },
+      { label: "可逆反应", equation: "$$\\ce{N2 + 3H2 <=> 2NH3}$$" },
+      { label: "沉淀", equation: "$$\\ce{Ba^2+ + SO4^2- -> BaSO4\\downarrow}$$" },
+      { label: "气体", equation: "$$\\ce{Zn + 2H+ -> Zn^2+ + H2\\uparrow}$$" },
+      { label: "多余的第五条", equation: "$$\\ce{H2O}$$" },
+      { label: "空式子", equation: "   " },
+      { label: "无式子" }
+    ],
+    mechanism: "1. 亲电试剂加成到双键，形成碳正离子。\n2. 亲核试剂进攻碳正离子。"
+  }
+  try {
+    const r = await api("/generate", { method: "POST", body: { topic: "周环反应" } })
+    assert.equal(r.status, 200)
+    const card = r.json.card
+    assert.equal(card.reactions.length, 4, "超过 4 条应被截断，空式子应被过滤")
+    for (const item of card.reactions) {
+      assert.equal(typeof item.label, "string")
+      assert.ok(item.equation.includes("\\ce{"), "反应式应保留 mhchem 语法")
+    }
+    assert.match(card.mechanism, /碳正离子/)
+  } finally {
+    payloadOverride = {}
+  }
+})
+
+test("卡片未给 reactions / mechanism 时回落为空数组与空字符串", async () => {
+  llmMode = "fast"
+  const r = await api("/generate", { method: "POST", body: { topic: "无化学知识点" } })
+  assert.equal(r.status, 200)
+  assert.deepEqual(r.json.card.reactions, [])
+  assert.equal(r.json.card.mechanism, "")
 })

@@ -19,6 +19,7 @@ A DSH sidebar plugin: type any topic, and the host default model plus live web s
 - **Zero dependencies** — no runtime npm dependencies; `webServer`, `llm` and everything else is injected by the DSH host.
 - **Cache and regenerate** — the same topic reuses the stored card (`cached: true`) unless you force a regeneration (`force: true`).
 - **Native formula rendering** — the generation prompt requires standard LaTeX (inline `$…$`, core formulas as `$$…$$` on their own centered line, integrals with limits, Greek letters, complex exponentials, fractions, operators); the panel converts LaTeX to MathML and renders it with the browser's built-in MathML Core — no external fonts or CDN.
+- **Chemical equations and mechanisms** — reaction-type topics include a balanced example equation (correct element casing, subscripts, ionic charges as superscripts, `(g)(l)(s)(aq)` states, `->` / `<=>`, conditions above/below the arrow, `↑` `↓` markers) and mechanism-type topics include a step-by-step mechanism. Equations are written in mhchem `\ce{...}` syntax and rendered structurally by the same dependency-free converter — no mhchem, no KaTeX. See [`docs/screenshot-chemistry.png`](docs/screenshot-chemistry.png) (pericyclic reaction: bond symbols, a `Δ` condition, a `‡` transition state and a step-by-step mechanism).
 - **Theme-aware UI** — inherits the DSH light/dark theme; icon row in the sidebar and a full panel in the main area.
 
 ## Requirements
@@ -162,6 +163,7 @@ The GitHub username appears as a placeholder throughout the repo (no real userna
 | `SECURITY.md` | 1 place: GitHub security advisory link |
 | `docs/PUBLISHING.md` | example repository URLs |
 | `docs/screenshot.png` | optionally replace with your own screenshot (current one is a real local run, cropped to the plugin pane) |
+| `docs/screenshot-chemistry.png` | optional chemistry card screenshot (also a real local run, sidebar cropped out) |
 | GitHub | create the repository, push tag `v0.2.0`, and publish a Release (notes can come from `CHANGELOG.md`) |
 
 See [docs/PUBLISHING.md](docs/PUBLISHING.md) for the full sequence.

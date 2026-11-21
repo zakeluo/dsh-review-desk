@@ -19,6 +19,7 @@ DSH 侧栏插件：输入任意知识点，由宿主默认模型结合联网检�
 - **零依赖**：运行时不需要任何 npm 依赖，`webServer`、`llm` 等能力全部由 DSH 宿主注入。
 - **缓存与重生成**：同一知识点默认复用已有卡片（`cached: true`），也可强制重新生成（`force: true`）。
 - **公式原生渲染**：生成提示词强制模型用标准 LaTeX 书写（行内 `$…$`、核心公式 `$$…$$` 单独居中成行、积分带上下限、希腊字母、复指数、分式、算子等），面板内置零依赖 LaTeX→MathML 转换器，用浏览器原生 MathML Core 渲染，不需要外部字体或 CDN。
+- **化学式与反应式**：涉及化学反应的知识点会给出配平的示例反应式（元素符号大小写、下标、离子电荷上标、`(g)(l)(s)(aq)` 状态、`->` / `<=>`、箭头上下条件、`↑` `↓` 标注），机理类知识点额外给出分步机理；反应式用 mhchem 的 `\ce{...}` 语法书写，由同一个零依赖转换器渲染成结构化公式，不引入 mhchem 或 KaTeX。效果见 [`docs/screenshot-chemistry.png`](docs/screenshot-chemistry.png)（周环反应：成键符号、`Δ` 反应条件、过渡态 `‡` 与分步机理）。
 - **跟随主题**：面板颜色继承 DSH 明暗主题；侧栏为 icon 行，主面板为完整复习界面。
 
 ## 环境要求
@@ -162,6 +163,7 @@ dsh-review-desk/
 | `SECURITY.md` | 1 处：GitHub 安全公告链接 |
 | `docs/PUBLISHING.md` | 示例仓库地址 |
 | `docs/screenshot.png` | 可替换为自己的运行截图（当前为本机实际截图裁掉侧栏） |
+| `docs/screenshot-chemistry.png` | 可选：化学卡片截图（同为真实运行截图，裁掉侧栏） |
 | GitHub | 创建仓库后打真实 tag `v0.2.0` 并发布 Release（Release notes 可直接取自 `CHANGELOG.md`） |
 
 完整步骤见 [docs/PUBLISHING.md](docs/PUBLISHING.md)。

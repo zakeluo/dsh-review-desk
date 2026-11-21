@@ -19,6 +19,7 @@ First public-release preparation. No user-facing feature removal.
 - Explicit 200-second timeout for `/generate` (search + model call).
 - `node:test` suites under `tests/` with CI workflow (`.github/workflows/ci.yml`, Node 20/22).
 - LaTeX formulas in generated cards: the generation prompt now mandates standard LaTeX (inline `$…$`, core formulas as `$$…$$` on their own centered line, integrals with limits, Greek letters, complex exponentials, fractions, operators), and the panel ships a dependency-free LaTeX→MathML converter rendered with the browser's native MathML Core — no KaTeX/MathJax, no web fonts, no CDN.
+- Chemistry support: the generation prompt now mandates mhchem `\ce{…}` syntax with strict conventions (element casing, subscripts, ionic charges as superscripts with the digit first, `(g)(l)(s)(aq)` states, balanced equations with atom and charge conservation, `->` for ordinary and `<=>` for reversible reactions, conditions above/below the arrow, `\uparrow` / `\downarrow` for gas and precipitate, weak-electrolyte and hydrolysis equilibria, electrode reactions with `e-`, organic reactions with functional groups/conditions/type; mechanisms must have at least 2 steps, one per line, numbered outside `\ce`). Cards gained optional `reactions` (1–4 labeled equations) and `mechanism` (step-by-step mechanism) fields, rendered in new panel sections through the same converter, which now understands a `\ce{}` subset (formulas, subscripts/superscripts, states, `->` `<-` `<->` `<=>`, bracketed conditions with `\Delta` / `\circ` / Greek letters, arrows up/down, bond symbols, transition-state `^{\ddagger}`).
 - English README (`README.en.md`), `SECURITY.md`, `CONTRIBUTING.md`, `docs/PUBLISHING.md`.
 
 ### Changed
@@ -34,6 +35,9 @@ First public-release preparation. No user-facing feature removal.
 
 ### Fixed
 
+- `\ce{}` bond symbols: a single bond between atoms (`CH2=CH-CH=CH2`) is no longer misread as a negative charge superscript, and `=` / `-` bonds are rendered with tight bond spacing instead of wide relation spacing.
+- `\ce{}` arrow conditions and scripts: `->[\Delta]`, `^{\circ}` and `^{\ddagger}` now render as Δ, ° and ‡ instead of literal `\Delta` / `\ddagger` text.
+- Long chemistry fields are no longer truncated mid-formula: card text is cut only outside `$…$` / `$$…$$` and balanced braces, `mechanism` literal `\n` sequences are restored to real newlines, and the mechanism section renders numbered steps again.
 - Registering the `main` slot through `ctx.slots.inject('main', …)` so the web client boots instead of failing on a missing keyed child slot.
 - Sidebar icon row now follows the 16/18 px `aria-hidden` glyph contract instead of rendering a label inside the icon slot.
 - Style injection claims a plugin-owned `<style>` element, avoiding duplicated CSS across panel mounts.
